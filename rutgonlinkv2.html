@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Đa Năng Premium</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 20px; 
+            background: #f4f7f6; 
+            margin: 0; 
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+        h2 { 
+            text-align: center; 
+            color: #1a73e8; 
+            font-size: 24px; 
+            margin-bottom: 25px; 
+            margin-top: 0;
+        }
+        
+        /* Tab CSS */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: none;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: -2px;
+        }
+        .tab-btn:hover {
+            color: #1a73e8;
+            background: #f8f9fa;
+        }
+        .tab-btn.active {
+            color: #1a73e8;
+            border-bottom: 3px solid #1a73e8;
+            background: transparent;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Elements CSS */
+        textarea, input { 
+            width: 100%; 
+            margin-bottom: 15px; 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 1px solid #ccc; 
+            box-sizing: border-box; 
+            font-size: 14px; 
+            font-family: inherit;
+        }
+        textarea { height: 160px; resize: vertical; }
+        input { height: 50px; }
+        
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background: #1a73e8; 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            margin-bottom: 15px; 
+            cursor: pointer; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:active { transform: scale(0.98); }
+        .result-box { background: #e8f0fe; color: #333; font-weight: 500; }
+        .btn-copy { background: #0f9d58; }
+        .btn-copy:hover { background: #0d8a4d; }
+        .btn-action:hover { background: #1557b0; }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-group input:nth-child(1) { flex: 7; }
+        .input-group input:nth-child(2) { flex: 3; }
+
+        /* Custom Toast Notification (Thay thế alert) */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-size: 14px;
+        }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        @keyframes fadein {
+            from {bottom: 0; opacity: 0;} 
+            to {bottom: 30px; opacity: 1;}
+        }
+        @keyframes fadeout {
+            from {bottom: 30px; opacity: 1;} 
+            to {bottom: 0; opacity: 0;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Công Cụ Premium</h2>
+
+        <!-- Tabs Header -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'tab-rutgon')">🔗 Rút Gọn Link</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-nhanban')">📧 Nhân Bản Email</button>
+        </div>
+
+        <!-- Tab 1: Rút Gọn Link -->
+        <div id="tab-rutgon" class="tab-content active">
+            <textarea id="inputLinks" placeholder="Dán các link gốc vào đây (mỗi link 1 dòng)..."></textarea>
+            <button class="btn-action" id="shortenBtn" onclick="rutGon()">⚡ RÚT GỌN NGAY</button>
+            
+            <textarea id="result" class="result-box" placeholder="Link rút gọn sẽ hiện ở đây..." readonly></textarea>
+            <button class="btn-copy" id="copyBtn1" onclick="copyText('result', 'copyBtn1')">📋 COPY LINK RÚT GỌN</button>
+        </div>
+
+        <!-- Tab 2: Nhân Bản Email -->
+        <div id="tab-nhanban" class="tab-content">
+            <div class="input-group">
+                <input type="text" id="baseEmail" placeholder="Nhập email gốc (vd: abc@gmail.com)" />
+                <input type="number" id="cloneCount" placeholder="Số lượng" min="1" value="5" /> <!-- Đã đổi value thành 5 -->
+            </div>
+            <button class="btn-action" id="cloneBtn" onclick="nhanBan()">🔄 NHÂN BẢN EMAIL</button>
+            
+            <textarea id="emailResult" class="result-box" placeholder="Danh sách email nhân bản sẽ hiện ở đây..." readonly></textarea>
+            <button class="btn-copy" id="copyBtn2" onclick="copyText('emailResult', 'copyBtn2')">📋 COPY TẤT CẢ EMAIL</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">Thông báo</div>
+
+    <script>
+        // Hàm hiển thị thông báo thay thế alert()
+        function showToast(msg) {
+            let toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.className = "toast show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // Chuyển đổi Tab
+        function switchTab(event, tabId) {
+            // Ẩn tất cả nội dung tab
+            let contents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < contents.length; i++) {
+                contents[i].classList.remove("active");
+            }
+            
+            // Xóa class active của tất cả các nút
+            let buttons = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove("active");
+            }
+
+            // Hiển thị tab được chọn
+            document.getElementById(tabId).classList.add("active");
+            event.currentTarget.classList.add("active");
+        }
+
+        // TÍNH NĂNG 1: RÚT GỌN LINK
+        async function rutGon() {
+            let input = document.getElementById('inputLinks').value;
+            let links = input.split('\n').filter(l => l.trim() !== '');
+            if(links.length === 0) {
+                return showToast('Vui lòng dán link gốc vào trước!');
+            }
+            
+            let btn = document.getElementById('shortenBtn');
+            btn.innerText = 'Đang xử lý...';
+            btn.style.background = '#80868b';
+            
+            let shortLinks = [];
+            for(let url of links) {
+                try {
+                    let res = await fetch(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`);
+                    let data = await res.json();
+                    if(data.shorturl) {
+                        shortLinks.push(data.shorturl);
+                    } else {
+                        shortLinks.push(url + ' (Lỗi rút gọn)');
+                    }
+                } catch(e) {
+                    shortLinks.push(url + ' (Lỗi mạng)');
+                }
+            }
+            
+            document.getElementById('result').value = shortLinks.join('\n');
+            btn.innerText = '⚡ RÚT GỌN NGAY';
+            btn.style.background = '#1a73e8';
+            showToast('Rút gọn thành công!');
+        }
+
+        // TÍNH NĂNG 2: NHÂN BẢN EMAIL
+        function nhanBan() {
+            let emailInput = document.getElementById('baseEmail').value.trim();
+            let countInput = parseInt(document.getElementById('cloneCount').value);
+
+            // Kiểm tra tính hợp lệ
+            if (!emailInput || !emailInput.includes('@')) {
+                return showToast('Vui lòng nhập email hợp lệ (vd: abc@gmail.com)');
+            }
+            if (isNaN(countInput) || countInput <= 0) {
+                return showToast('Vui lòng nhập số lượng hợp lệ (lớn hơn 0)');
+            }
+
+            let parts = emailInput.split('@');
+            let username = parts[0];
+            let domain = parts[1];
+            
+            let results = [];
+            for (let i = 1; i <= countInput; i++) {
+                // Tạo email dạng: username+1@domain
+                results.push(`${username}+${i}@${domain}`);
+            }
+
+            document.getElementById('emailResult').value = results.join('\n');
+            showToast(`Đã tạo ${countInput} email!`);
+        }
+
+        // HÀM CHUNG: COPY VĂN BẢN
+        function copyText(inputId, btnId) {
+            let res = document.getElementById(inputId);
+            if(res.value.trim() === '') {
+                return showToast('Không có dữ liệu để copy!');
+            }
+            res.select();
+            document.execCommand('copy');
+            
+            // Đổi text button tạm thời
+            let copyBtn = document.getElementById(btnId);
+            let originalText = copyBtn.innerText;
+            copyBtn.innerText = '✅ ĐÃ COPY THÀNH CÔNG!';
+            copyBtn.style.background = '#0b8043';
+            
+            setTimeout(() => { 
+                copyBtn.innerText = originalText; 
+                copyBtn.style.background = '';
+            }, 2000);
+        }
+    </script>
+
+</body>
+</html>
+
+
