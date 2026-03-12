@@ -112,7 +112,7 @@
         .input-group input:nth-child(1) { flex: 7; }
         .input-group input:nth-child(2) { flex: 3; }
 
-        /* Custom Toast Notification (Thay thế alert) */
+        /* Custom Toast Notification */
         #toast {
             visibility: hidden;
             min-width: 250px;
@@ -148,13 +148,11 @@
     <div class="container">
         <h2>Công Cụ Premium</h2>
 
-        <!-- Tabs Header -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab(event, 'tab-rutgon')">🔗 Rút Gọn Link</button>
             <button class="tab-btn" onclick="switchTab(event, 'tab-nhanban')">📧 Nhân Bản Email</button>
         </div>
 
-        <!-- Tab 1: Rút Gọn Link -->
         <div id="tab-rutgon" class="tab-content active">
             <textarea id="inputLinks" placeholder="Dán các link gốc vào đây (mỗi link 1 dòng)..."></textarea>
             <button class="btn-action" id="shortenBtn" onclick="rutGon()">⚡ RÚT GỌN NGAY</button>
@@ -163,11 +161,10 @@
             <button class="btn-copy" id="copyBtn1" onclick="copyText('result', 'copyBtn1')">📋 COPY LINK RÚT GỌN</button>
         </div>
 
-        <!-- Tab 2: Nhân Bản Email -->
         <div id="tab-nhanban" class="tab-content">
             <div class="input-group">
                 <input type="text" id="baseEmail" placeholder="Nhập email gốc (vd: abc@gmail.com)" />
-                <input type="number" id="cloneCount" placeholder="Số lượng" min="1" value="5" /> <!-- Đã đổi value thành 5 -->
+                <input type="number" id="cloneCount" placeholder="Số lượng" min="1" value="5" />
             </div>
             <button class="btn-action" id="cloneBtn" onclick="nhanBan()">🔄 NHÂN BẢN EMAIL</button>
             
@@ -176,11 +173,10 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
     <div id="toast">Thông báo</div>
 
     <script>
-        // Hàm hiển thị thông báo thay thế alert()
+        // Hàm hiển thị thông báo
         function showToast(msg) {
             let toast = document.getElementById("toast");
             toast.innerText = msg;
@@ -190,24 +186,21 @@
 
         // Chuyển đổi Tab
         function switchTab(event, tabId) {
-            // Ẩn tất cả nội dung tab
             let contents = document.getElementsByClassName("tab-content");
             for (let i = 0; i < contents.length; i++) {
                 contents[i].classList.remove("active");
             }
             
-            // Xóa class active của tất cả các nút
             let buttons = document.getElementsByClassName("tab-btn");
             for (let i = 0; i < buttons.length; i++) {
                 buttons[i].classList.remove("active");
             }
 
-            // Hiển thị tab được chọn
             document.getElementById(tabId).classList.add("active");
             event.currentTarget.classList.add("active");
         }
 
-        // TÍNH NĂNG 1: RÚT GỌN LINK
+        // TÍNH NĂNG 1: RÚT GỌN LINK (Auto Redirect)
         async function rutGon() {
             let input = document.getElementById('inputLinks').value;
             let links = input.split('\n').filter(l => l.trim() !== '');
@@ -222,15 +215,36 @@
             let shortLinks = [];
             for(let url of links) {
                 try {
-                    let res = await fetch(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`);
-                    let data = await res.json();
-                    if(data.shorturl) {
-                        shortLinks.push(data.shorturl);
+                    // Ưu tiên 1: Spoo.me
+                    let res = await fetch('https://spoo.me/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'application/json'
+                        },
+                        body: new URLSearchParams({ 'url': url })
+                    });
+                    
+                    if(res.ok) {
+                        let data = await res.json();
+                        shortLinks.push(data.short_url); 
                     } else {
-                        shortLinks.push(url + ' (Lỗi rút gọn)');
+                        // Ưu tiên 2: CleanURI
+                        let res2 = await fetch('https://cleanuri.com/api/v1/shorten', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({ 'url': url })
+                        });
+                        
+                        if(res2.ok) {
+                            let data2 = await res2.json();
+                            shortLinks.push(data2.result_url);
+                        } else {
+                            shortLinks.push(url + ' (Lỗi từ server rút gọn)');
+                        }
                     }
                 } catch(e) {
-                    shortLinks.push(url + ' (Lỗi mạng)');
+                    shortLinks.push(url + ' (Lỗi mạng hoặc bị chặn CORS)');
                 }
             }
             
@@ -245,7 +259,6 @@
             let emailInput = document.getElementById('baseEmail').value.trim();
             let countInput = parseInt(document.getElementById('cloneCount').value);
 
-            // Kiểm tra tính hợp lệ
             if (!emailInput || !emailInput.includes('@')) {
                 return showToast('Vui lòng nhập email hợp lệ (vd: abc@gmail.com)');
             }
@@ -259,7 +272,6 @@
             
             let results = [];
             for (let i = 1; i <= countInput; i++) {
-                // Tạo email dạng: username+1@domain
                 results.push(`${username}+${i}@${domain}`);
             }
 
@@ -276,7 +288,6 @@
             res.select();
             document.execCommand('copy');
             
-            // Đổi text button tạm thời
             let copyBtn = document.getElementById(btnId);
             let originalText = copyBtn.innerText;
             copyBtn.innerText = '✅ ĐÃ COPY THÀNH CÔNG!';
@@ -288,9 +299,5 @@
             }, 2000);
         }
     </script>
-
 </body>
 </html>
-
-
-
