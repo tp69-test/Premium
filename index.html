@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tool Đa Năng Premium</title>
+    <!-- Thêm thư viện otpauth để hỗ trợ tạo mã 2FA -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/otpauth/9.3.1/otpauth.umd.min.js"></script>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -37,10 +39,10 @@
         }
         .tab-btn {
             flex: 1;
-            padding: 12px;
+            padding: 12px 5px;
             background: none;
             border: none;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             color: #666;
             cursor: pointer;
@@ -108,9 +110,13 @@
         .input-group {
             display: flex;
             gap: 10px;
+            margin-bottom: 15px;
         }
-        .input-group input:nth-child(1) { flex: 7; }
-        .input-group input:nth-child(2) { flex: 3; }
+        .input-group > * {
+            margin-bottom: 0 !important; /* Loại bỏ margin-bottom cho các phần tử con */
+        }
+        .input-group > *:nth-child(1) { flex: 7; }
+        .input-group > *:nth-child(2) { flex: 3; }
 
         /* Custom Toast Notification */
         #toast {
@@ -151,8 +157,10 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab(event, 'tab-rutgon')">🔗 Rút Gọn Link</button>
             <button class="tab-btn" onclick="switchTab(event, 'tab-nhanban')">📧 Nhân Bản Email</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-2fa')">🔐 Lấy Mã 2FA</button>
         </div>
 
+        <!-- TAB 1: RÚT GỌN LINK -->
         <div id="tab-rutgon" class="tab-content active">
             <textarea id="inputLinks" placeholder="Dán các link gốc vào đây (mỗi link 1 dòng)..."></textarea>
             <button class="btn-action" id="shortenBtn" onclick="rutGon()">⚡ RÚT GỌN NGAY</button>
@@ -161,6 +169,7 @@
             <button class="btn-copy" id="copyBtn1" onclick="copyText('result', 'copyBtn1')">📋 COPY LINK RÚT GỌN</button>
         </div>
 
+        <!-- TAB 2: NHÂN BẢN EMAIL -->
         <div id="tab-nhanban" class="tab-content">
             <div class="input-group">
                 <input type="text" id="baseEmail" placeholder="Nhập email gốc (vd: abc@gmail.com)" />
@@ -170,6 +179,19 @@
             
             <textarea id="emailResult" class="result-box" placeholder="Danh sách email nhân bản sẽ hiện ở đây..." readonly></textarea>
             <button class="btn-copy" id="copyBtn2" onclick="copyText('emailResult', 'copyBtn2')">📋 COPY TẤT CẢ EMAIL</button>
+        </div>
+
+        <!-- TAB 3: LẤY MÃ 2FA -->
+        <div id="tab-2fa" class="tab-content">
+            <div class="input-group">
+                <input type="text" id="input2faKey" placeholder="Nhập Secret Key (vd: JBSWY3DPEHPK...)" />
+                <button class="btn-copy" id="copyKeyBtn" onclick="copyText('input2faKey', 'copyKeyBtn')" style="font-size: 14px; padding: 0;">📋 COPY KEY</button>
+            </div>
+            
+            <button class="btn-action" id="get2faBtn" onclick="layMa2FA()">🔄 LẤY MÃ BẢO MẬT</button>
+            
+            <input type="text" id="result2faCode" class="result-box" style="text-align: center; font-size: 28px; letter-spacing: 6px; font-weight: bold;" placeholder="------" readonly />
+            <button class="btn-copy" id="copyCodeBtn" onclick="copyText('result2faCode', 'copyCodeBtn')">📋 COPY MÃ CODE</button>
         </div>
     </div>
 
@@ -200,7 +222,7 @@
             event.currentTarget.classList.add("active");
         }
 
-        // TÍNH NĂNG 1: RÚT GỌN LINK (Auto Redirect)
+        // TÍNH NĂNG 1: RÚT GỌN LINK
         async function rutGon() {
             let input = document.getElementById('inputLinks').value;
             let links = input.split('\n').filter(l => l.trim() !== '');
@@ -215,7 +237,6 @@
             let shortLinks = [];
             for(let url of links) {
                 try {
-                    // Ưu tiên 1: Spoo.me
                     let res = await fetch('https://spoo.me/', {
                         method: 'POST',
                         headers: {
@@ -229,7 +250,6 @@
                         let data = await res.json();
                         shortLinks.push(data.short_url); 
                     } else {
-                        // Ưu tiên 2: CleanURI
                         let res2 = await fetch('https://cleanuri.com/api/v1/shorten', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -240,11 +260,11 @@
                             let data2 = await res2.json();
                             shortLinks.push(data2.result_url);
                         } else {
-                            shortLinks.push(url + ' (Lỗi từ server rút gọn)');
+                            shortLinks.push(url + ' (Lỗi từ server)');
                         }
                     }
                 } catch(e) {
-                    shortLinks.push(url + ' (Lỗi mạng hoặc bị chặn CORS)');
+                    shortLinks.push(url + ' (Lỗi mạng/CORS)');
                 }
             }
             
@@ -263,7 +283,7 @@
                 return showToast('Vui lòng nhập email hợp lệ (vd: abc@gmail.com)');
             }
             if (isNaN(countInput) || countInput <= 0) {
-                return showToast('Vui lòng nhập số lượng hợp lệ (lớn hơn 0)');
+                return showToast('Vui lòng nhập số lượng hợp lệ (>0)');
             }
 
             let parts = emailInput.split('@');
@@ -279,25 +299,55 @@
             showToast(`Đã tạo ${countInput} email!`);
         }
 
-        // HÀM CHUNG: COPY VĂN BẢN
+        // TÍNH NĂNG 3: LẤY MÃ 2FA
+        function layMa2FA() {
+            let keyInput = document.getElementById('input2faKey').value.replace(/\s+/g, ''); // Xóa khoảng trắng
+            if (!keyInput) {
+                return showToast('Vui lòng nhập Secret Key!');
+            }
+
+            try {
+                // Sử dụng thư viện OTPAuth để tạo mã chuẩn
+                let totp = new OTPAuth.TOTP({
+                    issuer: 'ToolPremium',
+                    label: 'User',
+                    algorithm: 'SHA1',
+                    digits: 6,
+                    period: 30,
+                    secret: keyInput
+                });
+                
+                let code = totp.generate();
+                document.getElementById('result2faCode').value = code;
+                showToast('Lấy mã thành công!');
+            } catch (error) {
+                showToast('Secret Key không hợp lệ! Vui lòng kiểm tra lại.');
+                document.getElementById('result2faCode').value = '';
+            }
+        }
+
+        // HÀM CHUNG: COPY VĂN BẢN (Dùng cho cả thẻ Input và Textarea)
         function copyText(inputId, btnId) {
             let res = document.getElementById(inputId);
             if(res.value.trim() === '') {
                 return showToast('Không có dữ liệu để copy!');
             }
+            
             res.select();
+            res.setSelectionRange(0, 99999); // Dành cho mobile
             document.execCommand('copy');
             
             let copyBtn = document.getElementById(btnId);
             let originalText = copyBtn.innerText;
-            copyBtn.innerText = '✅ ĐÃ COPY THÀNH CÔNG!';
+            copyBtn.innerText = '✅ ĐÃ COPY!';
             copyBtn.style.background = '#0b8043';
             
             setTimeout(() => { 
                 copyBtn.innerText = originalText; 
-                copyBtn.style.background = '';
+                copyBtn.style.background = ''; // Trả về màu CSS mặc định
             }, 2000);
         }
     </script>
 </body>
 </html>
+
